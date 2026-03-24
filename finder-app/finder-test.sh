@@ -2,9 +2,11 @@
 # Tester script for assignment 1 and assignment 2
 # Author: Siddhant Jajoo
 
+# 1. modify to remove the make step
+
 set -e
 set -u
-
+P
 NUMFILES=10
 WRITESTR=AELD_IS_FUN
 WRITEDIR=/tmp/aeld-data

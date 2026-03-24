@@ -9,13 +9,16 @@
 */
 bool do_system(const char *cmd)
 {
-
 /*
  * TODO  add your code here
  *  Call the system() function with the command set in the cmd
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
+    int res = system(cmd);
+    if (res != 0) {
+        return false;
+    }
 
     return true;
 }
@@ -58,10 +61,29 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+    pid_t pid = fork(); // pid_t is int but PID specific
+
+    if (pid == -1) {
+        return false;
+    } else if (pid == 0) {
+        // child process
+        execv(command[0], command);
+        // anything after execv only runs if it failed
+        exit(1);
+    } else {
+        // parent process
+        int status;
+        waitpid(pid, &status, 0);
+        // inspect status
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+            va_end(args);
+            return true;
+        }
+    }
 
     va_end(args);
 
-    return true;
+    return false;
 }
 
 /**

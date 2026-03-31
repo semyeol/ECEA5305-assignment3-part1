@@ -2,6 +2,11 @@
 # Script outline to install and build kernel.
 # Author: Siddhant Jajoo.
 
+# “finder-app/manual-linux.sh” which uses ARM cross-compile toolchain to build a barebones 
+# kernel and rootfs and boots using QEMU by completing the TODO references
+
+# 
+
 set -e
 set -u
 
@@ -35,7 +40,10 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     git checkout ${KERNEL_VERSION}
 
     # TODO: Add your kernel build steps here
-fi
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} mrproper
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} defconfig
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} -j$(nproc) all 
+fi 
 
 echo "Adding the Image in outdir"
 
@@ -48,6 +56,11 @@ then
 fi
 
 # TODO: Create necessary base directories
+mkdir -p ${OUTDIR}/rootfs 
+cd "$OUTDIR/rootfs"
+
+mkdir -p bin dev etc home lib lib64 proc sbin sys tmp usr/bin usr/lib usr/sbin var/log
+
 
 cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/busybox" ]
@@ -56,19 +69,33 @@ git clone git://busybox.net/busybox.git
     cd busybox
     git checkout ${BUSYBOX_VERSION}
     # TODO:  Configure busybox
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} defconfig
+
 else
     cd busybox
 fi
 
 # TODO: Make and install busybox
+make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} -j$(nproc)
+make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} CONFIG_PREFIX=${OUTDIR}/rootfs install
 
 echo "Library dependencies"
 ${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter"
 ${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
 
 # TODO: Add library dependencies to rootfs
+# get sysroot path
+SYSROOT=$(${CROSS_COMPILE}gcc -print-sysroot)
+
+# copy program int and shared libs in sysroot to dest
+cp -a ${SYSROOT}/lib/ld-linux-aarch64.so.1 ${OUTDIR}/rootfs/lib/
+cp -a ${SYSROOT}/lib64/libm* ${OUTDIR}/rootfs/lib64/
+cp -a ${SYSROOT}/lib64/libc* ${OUTDIR}/rootfs/lib64/
+cp -a ${SYSROOT}/lib64/libresolv* ${OUTDIR}/rootfs/lib64/
 
 # TODO: Make device nodes
+
+
 
 # TODO: Clean and build the writer utility
 

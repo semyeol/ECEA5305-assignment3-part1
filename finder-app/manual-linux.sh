@@ -88,20 +88,38 @@ ${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
 SYSROOT=$(${CROSS_COMPILE}gcc -print-sysroot)
 
 # copy program int and shared libs in sysroot to dest
+# cp source destination
 cp -a ${SYSROOT}/lib/ld-linux-aarch64.so.1 ${OUTDIR}/rootfs/lib/
 cp -a ${SYSROOT}/lib64/libm* ${OUTDIR}/rootfs/lib64/
 cp -a ${SYSROOT}/lib64/libc* ${OUTDIR}/rootfs/lib64/
 cp -a ${SYSROOT}/lib64/libresolv* ${OUTDIR}/rootfs/lib64/
 
 # TODO: Make device nodes
-
-
+# sudo mknod -m <permissions> <path> <type> <major> <minor>
+sudo mknod -m 666 ${OUTDIR}/rootfs/dev/null c 1 3
+sudo mknod -m 600 ${OUTDIR}/rootfs/dev/console c 5 1
 
 # TODO: Clean and build the writer utility
+make clean -C ${FINDER_APP_DIR} # -C runs as if u were in the directory 
+make CROSS_COMPILE=${CROSS_COMPILE} -C ${FINDER_APP_DIR}
+cp ${FINDER_APP_DIR}/writer ${OUTDIR}/rootfs/home/
 
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
+cp ${FINDER_APP_DIR}/finder.sh ${OUTDIR}/rootfs/home/
+cp ${FINDER_APP_DIR}/conf/username.txt ${OUTDIR}/rootfs/home/
+cp ${FINDER_APP_DIR}/conf/assignment.txt ${OUTDIR}/rootfs/home/
+cp ${FINDER_APP_DIR}/finder-test.sh ${OUTDIR}/rootfs/home/
+# finder-test needs to reference conf/assignment.txt instead of ../conf/assignment.txt
+# use sed -i (edit file in place) s|old|new
+sed -i 's|\.\./conf/assignment.txt|conf/assignment.txt|' ${OUTDIR}/rootfs/home/finder-test.sh
+
+cp ${FINDER_APP_DIR}/autorun-qemu.sh ${OUTDIR}/rootfs/home/
 
 # TODO: Chown the root directory
+# chown [flags] owner:group path
+sudo chown -R root:root ${OUTDIR}/rootfs 
 
 # TODO: Create initramfs.cpio.gz
+cd ${OUTDIR}/rootfs && find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
+gzip -f ${OUTDIR}/initramfs.cpio

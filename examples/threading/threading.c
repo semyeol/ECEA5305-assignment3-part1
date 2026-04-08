@@ -14,6 +14,22 @@ void* threadfunc(void* thread_param)
     // TODO: wait, obtain mutex, wait, release mutex as described by thread_data structure
     // hint: use a cast like the one below to obtain thread arguments from your parameter
     //struct thread_data* thread_func_args = (struct thread_data *) thread_param;
+    struct thread_data* thread_func_args = (struct thread_data *) thread_param;
+    usleep(thread_func_args->sleep_before_lock * 1000); // simulates the thread doing work before shared resource
+    int rc = pthread_mutex_lock(thread_func_args->mutex);
+    if (rc != 0) {
+        thread_func_args->thread_complete_success = false;
+        return thread_param;
+    }
+    usleep(thread_func_args->sleep_after_lock * 1000); // sim the thread holding the mutex while doing work with shared resource
+    int rc = pthread_mutex_unlock(thread_func_args->mutex);
+    if (rc != 0) {
+        thread_func_args->thread_complete_success = false;
+        return thread_param;
+    }
+
+    thread_func_args->thread_complete_success = true;
+
     return thread_param;
 }
 
